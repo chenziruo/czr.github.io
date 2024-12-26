@@ -1,7 +1,7 @@
 //console.log('Loading Model...');
 // 加载模型
 async function loadModel() {
-    const model = await tf.loadLayersModel('./model/model.json')
+    const model = await tf.loadLayersModel('model/model.json')
     return model
 }
 
