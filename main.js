@@ -188,6 +188,69 @@ function detectFaceInRealTime(video, net) {
     faceDetectionFrame();
 }
 
+
+// 初始化帧率相关变量
+let lastFrameTime = 0;  // 上一帧时间戳
+let frameCount = 0;     // 帧计数
+let fps = 0;            // 帧率
+
+// 创建一个元素来显示 FPS
+const fpsDisplay = document.createElement('div');
+fpsDisplay.style.position = 'absolute';
+fpsDisplay.style.top = '10px';
+fpsDisplay.style.left = '10px';
+fpsDisplay.style.fontSize = '20px';
+fpsDisplay.style.color = 'white';
+fpsDisplay.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+fpsDisplay.style.padding = '5px';
+fpsDisplay.style.borderRadius = '5px';
+document.body.appendChild(fpsDisplay);
+
+// 帧率更新函数
+function updateFPS() {
+    const now = performance.now();  // 获取当前时间
+    frameCount++;
+
+    // 每秒更新一次 FPS
+    if (now - lastFrameTime >= 1000) {
+        fps = frameCount;  // 当前帧率
+        fpsDisplay.innerText = `FPS: ${fps}`;  // 更新显示的帧率
+        frameCount = 0;  // 重置帧计数
+        lastFrameTime = now;  // 更新上一帧时间
+    }
+}
+
+// 每帧检测并绘制检测框的函数
+function detectFaceInRealTime(video, net) {
+    const canvas = document.getElementById('output');
+    const ctx = canvas.getContext('2d');
+
+    canvas.width = videoWidth;
+    canvas.height = videoHeight;
+
+    async function faceDetectionFrame() {
+        ctx.clearRect(0, 0, videoWidth, videoHeight);
+        ctx.save();
+        ctx.scale(-1, 1);  // 水平翻转画布
+        ctx.translate(-videoWidth, 0);
+        ctx.drawImage(video, 0, 0, videoWidth, videoHeight);  // 绘制视频帧
+        ctx.restore();
+
+        let preds = await predict(net, ctx);  // 获取预测结果
+        let faces = await processpreds(preds);  // 处理预测结果
+        await drawFaceRec(faces, ctx);  // 绘制人脸框
+
+        // 更新帧率
+        updateFPS();
+
+        // 请求下一帧
+        requestAnimationFrame(faceDetectionFrame);
+    }
+
+    // 启动人脸检测帧循环
+    faceDetectionFrame();
+}
+
 // 加载模型、启动摄像头并启动实时人脸检测。
 async function bindPage() {
     const faceModel = await loadModel()
@@ -209,6 +272,7 @@ async function bindPage() {
 
     detectFaceInRealTime(video, faceModel);
 }
+
 // 兼容性
 navigator.getUserMedia = navigator.getUserMedia ||
     navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
